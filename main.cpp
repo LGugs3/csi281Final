@@ -3,22 +3,59 @@
 //
 #include <cmath>
 #include <complex>
+#include <valarray>
+#include <iostream>
+#include "AudioFile.h"
 
-template <typename T, typename K>
-T fxn(const T time, const K freq)
+using Complex = std::complex<double>;
+using CArray = std::valarray<Complex>;
+
+void fft(CArray& arr)
 {
-    return getIntensity(time) * pow(exp(1),-2.0 * M_PI * std::complex<double>(0,1) * freq * time);
+    const size_t N = arr.size();
+    if (N <= 1) return;
+
+    //divide
+    CArray even = arr[std::slice(0,N / 2, 2)];
+    CArray odd = arr[std::slice(1,N / 2, 2)];
+
+    fft(even);
+    fft(odd);
+
+    //combine
+    for(size_t i = 0; i < N / 2; i++)
+    {
+        Complex t = std::polar(1.0, -2 * M_PI * i / N) * odd[i];
+        arr[i] = even[i] + t;
+        arr[i + N / 2] = even[i] - t;
+    }
 }
 
-long double trapezoidalRule(long double a, long double b, int n, double freq)
+int main()
 {
-    long double h = (b - a) / n;
-    long double sum = 0.5 * (fxn(a, freq) + fxn(b, freq));
+    AudioFile<double> audioFile;
+    audioFile.load("basicScale.wav");
 
-    for (int i = 1; i < n; i++)
-    {
-        double x = a + i * h;
-        sum += fxn(x, freq);
-    }
-    return h * sum;
+    audioFile.printSummary();
+
+    // Complex test[8];
+    // for(int i = 0; i < 4; i++)
+    // {
+    //     test[i] = 1.0;
+    //     test[i + 4] = 0.0;
+    // }
+    // CArray data(test, 8);
+    //
+    // for(int i = 0; i < 8; i++)
+    // {
+    //     std::cout << data[i] << std::endl;
+    // }
+    // std::cout << std::endl << std::endl;
+    // fft(data);
+    //
+    // for (int i = 0 ; i < 8; i++)
+    // {
+    //     std::cout << data[i] << std::endl;
+    // }
+    return 0;
 }
